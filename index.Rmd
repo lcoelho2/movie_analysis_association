@@ -1,0 +1,170 @@
+---
+title       : "Exercício Litteris"
+subtitle    : 
+author      : Luis Antonio
+job         : 
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+---
+
+<!-- font-size: 0.7em; -- Inserido no arquivo slidify.css do framework io2012
+para diminuir o tamanho do caption da tabela  -->
+
+<!-- Limit image width and height -->
+<style type='text/css'>
+img {
+    max-height: 500px;
+    max-width: 1080px;
+    }
+</style>
+
+<!-- Center image on slide -->
+<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+<script type='text/javascript'>
+$(function() {
+    $("p:has(img)").addClass('centered');
+});
+</script>
+
+
+## Questões
+1. Quais gêneros tem na média histórica os maiores ratings
+2. Quais gêneros obtiveram a maior queda e crescimento na média com o passar do tempo 
+3. Existe alguma relação entre users? (e.g. users dão notas mais altas para um gênero dão notas mais baixas para outro gênero; dica: você pode tentar segmentar users)
+
+--- .class #id 
+Os dados utilizados para responder as questões estão no link abaixo. [http://grouplens.org/datasets/movielens/20m/](http://grouplens.org/datasets/movielens/20m/)
+
+A partir dele foram retirados dois arquivos úteis, e foram criados dois data frames, `movies` e `ratings`. Abaixo vemos parte deles.
+
+```{r echo=FALSE,results='asis' }
+kable(head(movies,n=3),format = "html",caption = "Head of the Movies Data Frame")
+```
+
+```{r echo=FALSE,results='asis' }
+kable(head(ratingsBefore,n=3),format = "html",caption = "Head of the Ratings Data Frame")
+```
+
+--- .class #id 
+
+## Processamento dos data frames
+
+Como podemos ver pelo campo `Timestamp` a data está no formato `POSIXct`, por isso convertemos ela para o calendário Gregoriano. Além disso, extraímos somente o ano de cada data.
+
+```{r echo=FALSE}
+kable(head(ratings,n=3),format = "html",caption = "Ratings com a data formatada")
+```
+
+--- .class #id
+
+Como alguns filmes possuem vários gêneros, separamos os diferentes gêneros em diferentes linhas.
+
+```{r echo=FALSE}
+kable(head(moviess,n=5),format = "html",caption = "Movies com gêneros separados")
+```
+
+--- .class #id 
+
+Para obtermos os gêneros e seus respectivos ratings criamos um único data frame fazendo inner join de `ratings` e `movies`, usando o campo `movieId`. 
+
+```{r echo=FALSE ,results='asis'}
+kable(head(total,n=5),format = "html",caption = "Data frame completo")
+```
+
+--- .class #id 
+
+## Outliers
+Foi excluído o ano de 1995, pois existem apenas 4 filmes nesse ano.  
+```{r, results='asis',echo=FALSE}
+y1995 <- total %>% filter(timestamp == 1995) 
+```
+
+```{r echo=FALSE, results='asis'}
+kable(head(movies %>% filter(movieId %in% y1995$movieId)), format='html',caption = "Filmes com ratings em 1995")
+```
+
+--- .class #id 
+
+## Questão 1 
+
+Agrupando a média dos ratings por gênero e tempo.
+
+![Média dos ratings por gênero e tempo](plots/q1.png) 
+
+--- .class #id 
+
+Analisando as maiores médias, abaixo vemos os gêneros com maiores ratings.
+
+```{r echo=FALSE}
+kable(mm, format='html',caption = "Maiores médias")
+```
+
+--- .class #id 
+
+## Questão 2
+
+Para analisar os crescimentos e quedas na média, o data frame foi dividido em 2 períodos (análise visual de crescimento e queda). Mesmo acreditando que deve existir uma maneira melhor... 
+
+```{r}
+cresc <- tout %>% filter(timestamp %in% c(2005:2013) & genres != "(no genres listed)")
+queda <- tout %>% filter(timestamp %in% c(1999:2005) & genres != "(no genres listed)")
+```
+
+A partir dessa divisão pensei em duas maneiras para descobrir os gêneros com maiores quedas e os com maiores crescimentos. A primeira seria analisando o coeficiente angular da regressão linear.
+
+--- .class #id 
+
+Abaixo temos os gêneros que tiveram os maiores crescimentos e quedas na média.
+
+```{r , results='asis',echo= FALSE}
+t11 = kable(head(crescLm %>% arrange(desc(slope))), format='html',caption = "Crescimento", table.attr='cellpadding="3"', output = FALSE)
+t22 = kable(head(quedaLm %>% arrange(desc(slope))), format='html', caption = "Queda", table.attr='cellpadding="3"', output = FALSE)
+cat(c('<table><tr valign="top"><td>', t11, '</td>', '<td>', t22, '</td></tr></table>'),
+    sep = '')
+```
+
+--- .class #id 
+
+E, a segunda, seria calcular a diferença entre o maior e o menor rating nesses períodos, por gênero. Para isso usei o pacote `sqldf`. Não gerou o mesmo resultado, a ordem não foi a mesma. Abaixo temos as respectivas tabelas de maiores crescimentos e quedas.
+
+
+```{r , results='asis',echo= FALSE}
+t1 = kable(hcresc, format='html',caption = "Crescimento",  table.attr='cellpadding="3"', output = FALSE)
+t2 = kable(head(decr), format='html', caption = "Queda", table.attr='cellpadding="3"', output = FALSE)
+cat(c('<table><tr valign="top"><td>', t1, '</td>', '<td>', t2, '</td></tr></table>'),
+    sep = '')
+```
+
+--- .class #id 
+
+## Questão 3
+
+Para realizarmos o gráfico com a correlação entre os gêneros vamos, primeiro, verificar o número de vezes que um usuário forneceu determinado rate para um determinado gênero e a média, agrupando por `(user,genre)`.
+
+Depois, padronizar a coluna de rating, por usuário (alguns usuários que veem mais filmes que outros).
+
+Passamos agora os gênero para colunas para fazermos a correlação. Temos um exemplo abaixo, com as 6 primeiras colunas.
+
+```{r echo= FALSE}
+kable(head(usrgenres[,1:6],n=3),format = "html",caption = "Gêneros nas colunas")
+```
+
+--- .class #id 
+
+Abaixo vemos o gráfico da correlação entre os gêneros.
+
+![Correlação entre os gêneros](plots/q3.png) 
+
+
+--- .class #id 
+
+O gráfico foi ordenado pelo primeiro componente principal e foi adicionado um `X` para designar valores de significância inferiores a `1%`.
+
+Vemos que, pessoas que gostam de gêneros como Aventura e/ou Ação e/ou Sci-Fi, não gostam de Dramas e/ou Filmes-Noir. E, quem gosta de Filmes-Noir e/ou Drama, não gosta de Aventura e Ação. 
+
+Em menor escala, quem gosta de Thriller gosta de Ação e não gosta de Musical ou Romance, quem gosta de Animação gosta de filmes de criança, quem gosta Musical também gosta de filmes de criança e Romance, mas não gosta de filmes de Ação ou Thriller.
+
