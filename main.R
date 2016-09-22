@@ -1,4 +1,11 @@
 # Packages e Libraries
+#### Tempo estimado para rodar tudo é de 2h por causa da sparse matrix criada no final do processor.R
+library(tcltk)
+
+### escolha do Working Directory
+sw <- tclvalue(tkchooseDirectory())
+setwd(sw)
+
 #install.packages("readr")
 #install.packages("ggplot2")
 #install.packages("corrplot")

@@ -22,7 +22,8 @@ tagg <- tout %>% group_by(genres,timestamp) %>% summarise(rating = mean(rating))
 
 # Resposta da questão 1
 # Analisando as maiores médias
-mm <- tagg %>% group_by(genres) %>% summarise(rating = mean(rating)) %>% arrange(desc(rating)) %>% top_n(n=5,wt=rating)
+mm <- tagg %>% group_by(genres) %>% summarise(rating = mean(rating)) %>% arrange(desc(rating)) %>%
+  top_n(n=5,wt=rating)
 
 
 # Questão 2
@@ -31,12 +32,14 @@ queda <- tout %>% filter(timestamp %in% c(1999:2005) & genres != "(no genres lis
 
 #Abaixo temos os gêneros que tiveram os maiores crescimentos na média.
 
-crescLm <- plyr::ddply(cresc %>% select(genres,timestamp,rating), "genres",  function(x) coef(lm(rating ~ timestamp,data = x))[2])
+crescLm <- plyr::ddply(cresc %>% select(genres,timestamp,rating), "genres",  
+                       function(x) coef(lm(rating ~ timestamp,data = x))[2])
 names(crescLm)[2] <- "slope"
 head(crescLm %>% arrange(desc(slope)))
 
 #Abaixo temos os gêneros que tiveram as maiores quedas na média.
-quedaLm <- plyr::ddply(queda %>% select(genres,timestamp,rating), "genres", slope = function(x) coef(lm(rating ~ timestamp,data = x))[2])
+quedaLm <- plyr::ddply(queda %>% select(genres,timestamp,rating), "genres", 
+                       slope = function(x) coef(lm(rating ~ timestamp,data = x))[2])
 names(quedaLm)[2] <- "slope"
 head(quedaLm %>% arrange(desc(slope)))
 
@@ -44,18 +47,22 @@ head(quedaLm %>% arrange(desc(slope)))
 #Para isso usei o pacote `sqldf`. Não gerou o mesmo resultado, a ordem dos maiores não foi a mesma.
 #Crescimento na média.
 cresc <- sqldf::sqldf("select genres, (max(rating) - min(rating)) diff from tagg
-               where timestamp between 2005 and 2013 and genres != '(no genres listed)' group by genres order by diff desc")
+               where timestamp between 2005 and 2013 and genres != '(no genres listed)' 
+                      group by genres order by diff desc")
 hcresc <- head(cresc) ##alguma coisa no processamento do slidify não estava carregando a tabela cresc direito
 
 #Queda na média.
 decr <- sqldf::sqldf("select genres, (max(rating) - min(rating)) diff from tagg 
-              where timestamp between 1999 and 2005 and genres != '(no genres listed)' group by genres order by diff desc")
+              where timestamp between 1999 and 2005 and genres != '(no genres listed)' 
+                     group by genres order by diff desc")
 
 
 # Questão 3
 
-usrRatMax <- tout %>% filter(genres != "(no genres listed)") %>% group_by(userId,genres,rating) %>% summarise(count = n())
-usrRatxCt <- usrRatMax %>% mutate(cxr = rating * count) %>% group_by(userId,genres) %>% summarise(avg = mean(cxr))
+usrRatMax <- tout %>% filter(genres != "(no genres listed)") %>% group_by(userId,genres,rating) %>%
+  summarise(count = n())
+usrRatxCt <- usrRatMax %>% mutate(cxr = rating * count) %>% group_by(userId,genres) %>% 
+  summarise(avg = mean(cxr))
 
 #Agora, vamos padronizar a coluna de rating, por usuário (alguns usuários que veem mais filmes que outros).
 usrgensc <- plyr::ddply(usrRatxCt, "userId", function(x){ x$scavg = scale(x$avg)})

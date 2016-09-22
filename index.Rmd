@@ -168,3 +168,20 @@ Vemos que, pessoas que gostam de gêneros como Aventura e/ou Ação e/ou Sci-Fi,
 
 Em menor escala, quem gosta de Thriller gosta de Ação e não gosta de Musical ou Romance, quem gosta de Animação gosta de filmes de criança, quem gosta Musical também gosta de filmes de criança e Romance, mas não gosta de filmes de Ação ou Thriller.
 
+
+--- .class #id
+## Associação entre os gêneros
+```{r echo= FALSE}
+kable(rf,format = "html",caption = "Exemplo de associações obtidas")
+```
+
+--- 
+Podemos visualizar o relacionamento entre as regras descobertas usando o gráfico abaixo.
+
+![Grouped Matrix](plots/q3r.png) 
+
+---
+Podemos também utilizar um dendrogram para visualizar os clusters criados com os gêneros.
+
+![Dendrogram](plots/q3d.png)
+
